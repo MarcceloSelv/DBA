@@ -1,0 +1,10 @@
+Raiserror - Verificar compatibilidade com 2008 e necessidade de substituir por throw
+	- Não precisa, basta adicionar o parênteses.
+
+Ajuste no programa para colocar o nome da dll no APP Name.
+
+select * from sys.objects o inner join sys.sql_modules sm on sm.object_id = o.object_id where o.type = 'v' and sm.definition like '%*=%'
+
+Será preciso subir as Views Atualizadas, juntamente com o programa de atualização da ECRSQL para não gerar incompatibilidade no SQL.
+
+Select com "*=" chumbado na ECRGER na clausula where

@@ -1,0 +1,10 @@
+http://blog.extreme-advice.com/2013/02/22/service-broker-implementation-between-two-tables-in-one-database/
+
+http://blog.extreme-advice.com/2013/02/26/service-broker-queue-activation-and-thread-in-sql-server/
+
+http://blog.extreme-advice.com/2013/02/20/purge-target-transmission-queue-of-service-broker-in-sql-server/
+
+http://sqlperformance.com/2014/03/sql-performance/intro-to-service-broker
+
+
+http://www.davewentzel.com/content/service-broker-demystified-how-radically-simplify-sb

@@ -1,0 +1,1237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition">
+  <DataSources>
+    <DataSource Name="DataSource_Private">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>="data source=" &amp; Parameters!dsServerName.Value &amp; ";initial catalog="&amp;Parameters!dsDatabaseName.Value</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:DataSourceID>e0c9c4b4-fb5a-47df-b882-765fcf337f8f</rd:DataSourceID>
+      <rd:SecurityType>Windows</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="sqlnexus">
+      <Fields>
+        <Field Name="rownumber">
+          <DataField>rownumber</DataField>
+          <rd:TypeName>System.Int64</rd:TypeName>
+        </Field>
+        <Field Name="spinlock_name">
+          <DataField>spinlock_name</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="spin_diff">
+          <DataField>spin_diff</DataField>
+          <rd:TypeName>System.Double</rd:TypeName>
+        </Field>
+        <Field Name="collision_diff">
+          <DataField>collision_diff</DataField>
+          <rd:TypeName>System.Double</rd:TypeName>
+        </Field>
+        <Field Name="spindiff_per_collisiondiff">
+          <DataField>spindiff_per_collisiondiff</DataField>
+          <rd:TypeName>System.Double</rd:TypeName>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource_Private</DataSourceName>
+        <CommandText>if (object_id ('tbl_SPINLOCKSTATS') is not null)
+begin
+with spinlocks as (
+select first.[spinlock name] as spinlock_name
+	,  cast(last.[spins] as float) - cast(first.[spins] as float) as spin_diff
+	, cast(last.[collisions] as float) - cast(first.[collisions] as float) as collision_diff
+	, cast((cast(last.[spins] as float) - cast(first.[spins] as bigint)) as float) 
+	 / (cast((cast(last.[collisions] as float) - cast(first.[collisions] as bigint)) as float)+0.00000001 )
+	as spindiff_per_collisiondiff
+from [tbl_SPINLOCKSTATS] as first 
+	join [tbl_SPINLOCKSTATS] as last
+		on first.[spinlock name] = last.[spinlock name]
+		and first.runtime = (select min(runtime) from tbl_spinlockstats)
+		and last.runtime =  (select max(runtime) from tbl_spinlockstats)
+where first.[spinlock name] not like '%dbcc execution%' and  last.[spinlock name] not like '%dbcc execution%')
+select TOP 10 row_number() over (order by spindiff_per_collisiondiff desc) as rownumber,spinlock_name,spin_diff, collision_diff,spindiff_per_collisiondiff
+from spinlocks
+where spindiff_per_collisiondiff &gt; 0
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_RuntimeStats">
+      <Fields>
+        <Field Name="starting_time">
+          <DataField>starting_time</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+        <Field Name="ending_time">
+          <DataField>ending_time</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+        <Field Name="Duration_Minutes">
+          <DataField>Duration_Minutes</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource_Private</DataSourceName>
+        <CommandText>if (object_id ('tbl_SPINLOCKSTATS') is not null)
+begin
+select cast(min(runtime) as datetime) as starting_time, cast(max(runtime) as datetime) as ending_time, Datediff(mi, min(runtime),max(runtime)) as Duration_Minutes
+from tbl_SPINLOCKSTATS
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_DeleteText">
+      <Query>
+        <DataSourceName>DataSource_Private</DataSourceName>
+        <CommandText>if (object_id ('tbl_SPINLOCKSTATS') is not null)
+begin
+delete from [tbl_SPINLOCKSTATS]
+where [spinlock name] like '%dbcc execution%'
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_StartTime">
+      <Fields>
+        <Field Name="runtime">
+          <DataField>runtime</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource_Private</DataSourceName>
+        <CommandText>if (object_id ('tbl_SPINLOCKSTATS') is not null)
+begin
+select distinct runtime
+from tbl_SPINLOCKSTATS
+order by runtime
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_EndTime">
+      <Fields>
+        <Field Name="runtime">
+          <DataField>runtime</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>DataSource_Private</DataSourceName>
+        <CommandText>if (object_id ('tbl_SPINLOCKSTATS') is not null)
+begin
+select distinct runtime
+from tbl_SPINLOCKSTATS
+order by runtime desc
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+  </DataSets>
+  <Body>
+    <ReportItems>
+      <Tablix Name="table1">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn>
+              <Width>3.48039in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>2.08823in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>1.56618in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>1.74019in</Width>
+            </TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.31977in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox2">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Spinlock Name</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>8pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>textbox2</rd:DefaultName>
+                      <ZIndex>7</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox4">
+                      <CanGrow>true</CanGrow>
+                      <UserSort>
+                        <SortExpression>=Fields!spin_diff.Value</SortExpression>
+                      </UserSort>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Spins</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>8pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Format>g</Format>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>textbox4</rd:DefaultName>
+                      <ZIndex>6</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox5">
+                      <CanGrow>true</CanGrow>
+                      <UserSort>
+                        <SortExpression>=Fields!collision_diff.Value</SortExpression>
+                      </UserSort>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Collisions</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>8pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>textbox5</rd:DefaultName>
+                      <ZIndex>5</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox6">
+                      <CanGrow>true</CanGrow>
+                      <UserSort>
+                        <SortExpression>=Fields!spindiff_per_collisiondiff.Value</SortExpression>
+                      </UserSort>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Avg. Spins/Collisions</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>8pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>textbox6</rd:DefaultName>
+                      <ZIndex>4</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.30523in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="spinlock_name">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!spinlock_name.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>spinlock_name</rd:DefaultName>
+                      <ZIndex>3</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="spin_diff">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!spin_diff.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Right</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>spin_diff</rd:DefaultName>
+                      <ZIndex>2</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="collision_diff">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!collision_diff.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Right</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>collision_diff</rd:DefaultName>
+                      <ZIndex>1</ZIndex>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="spindiff_per_collisiondiff">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!spindiff_per_collisiondiff.Value</Value>
+                              <Style>
+                                <Format>F</Format>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Right</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>spindiff_per_collisiondiff</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>Silver</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember />
+            <TablixMember />
+            <TablixMember />
+            <TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <KeepWithGroup>After</KeepWithGroup>
+              <RepeatOnNewPage>true</RepeatOnNewPage>
+              <KeepTogether>true</KeepTogether>
+            </TablixMember>
+            <TablixMember>
+              <Group Name="table1_Details_Group">
+                <DataElementName>Detail</DataElementName>
+              </Group>
+              <TablixMembers>
+                <TablixMember />
+              </TablixMembers>
+              <DataElementName>Detail_Collection</DataElementName>
+              <DataElementOutput>Output</DataElementOutput>
+              <KeepTogether>true</KeepTogether>
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>sqlnexus</DataSetName>
+        <Top>6.375in</Top>
+        <Left>0.125in</Left>
+        <Height>0.625in</Height>
+        <Width>8.87499in</Width>
+        <Style>
+          <Border>
+            <Color>Silver</Color>
+            <Style>Solid</Style>
+          </Border>
+        </Style>
+      </Tablix>
+      <Textbox Name="textbox1">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>Spinlock Statistics Report</Value>
+                <Style>
+                  <FontFamily>Tahoma</FontFamily>
+                  <FontSize>20pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                  <Color>SteelBlue</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>textbox1</rd:DefaultName>
+        <Height>0.36in</Height>
+        <Width>5in</Width>
+        <ZIndex>1</ZIndex>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="starting_time">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=iif(First(Fields!starting_time.Value, "DataSet_RuntimeStats") = First(Fields!ending_time.Value, "DataSet_RuntimeStats"),"Spinlock data not imported completely","Run Time Summary")</Value>
+                <Style>
+                  <FontFamily>Tahoma</FontFamily>
+                  <FontSize>14pt</FontSize>
+                  <Color>Navy</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>starting_time</rd:DefaultName>
+        <Top>0.5in</Top>
+        <Left>0.125in</Left>
+        <Height>0.25in</Height>
+        <Width>8.875in</Width>
+        <ZIndex>2</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Tablix Name="table2">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn>
+              <Width>2.95833in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>2.95833in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>2.95833in</Width>
+            </TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.22in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox11">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Start Time</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>11pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <ZIndex>5</ZIndex>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox12">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>End Time</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>11pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <ZIndex>4</ZIndex>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="textbox13">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Duration (Minutes)</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontSize>11pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>White</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <ZIndex>3</ZIndex>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <BackgroundColor>SteelBlue</BackgroundColor>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.21in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="starting_time_1">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=First(Fields!starting_time.Value, "DataSet_RuntimeStats")</Value>
+                              <Style>
+                                <FontWeight>Bold</FontWeight>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>starting_time_1</rd:DefaultName>
+                      <ZIndex>2</ZIndex>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="ending_time">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=First(Fields!ending_time.Value, "DataSet_RuntimeStats")</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontWeight>Bold</FontWeight>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>ending_time</rd:DefaultName>
+                      <ZIndex>1</ZIndex>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Duration_Minutes">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Sum(Fields!Duration_Minutes.Value, "DataSet_RuntimeStats")</Value>
+                              <Style>
+                                <FontFamily>Tahoma</FontFamily>
+                                <FontWeight>Bold</FontWeight>
+                                <Color>Maroon</Color>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Left</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Duration_Minutes</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember />
+            <TablixMember />
+            <TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <KeepWithGroup>After</KeepWithGroup>
+              <RepeatOnNewPage>true</RepeatOnNewPage>
+              <KeepTogether>true</KeepTogether>
+            </TablixMember>
+            <TablixMember>
+              <Group Name="table2_Details_Group">
+                <DataElementName>Detail</DataElementName>
+              </Group>
+              <TablixMembers>
+                <TablixMember />
+              </TablixMembers>
+              <DataElementName>Detail_Collection</DataElementName>
+              <DataElementOutput>Output</DataElementOutput>
+              <KeepTogether>true</KeepTogether>
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>DataSet_RuntimeStats</DataSetName>
+        <Top>0.75in</Top>
+        <Left>0.125in</Left>
+        <Height>0.43in</Height>
+        <Width>8.87499in</Width>
+        <ZIndex>3</ZIndex>
+        <Style>
+          <Border>
+            <Style>Solid</Style>
+          </Border>
+          <TextAlign>Left</TextAlign>
+        </Style>
+      </Tablix>
+      <Textbox Name="textbox3">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>*Shows only Spinlocks which have Column 3 value greater than Zero. So, if the Spins/Collisions difference between data capture start and end is not above Zero, then you will not see in any output for the graph or the table! Also, the largest bar in the graph doesn't necessarily indicate a problem. It just indicates that the maximum amount of spins were observed for this category.</Value>
+                <Style>
+                  <FontSize>9pt</FontSize>
+                  <Color>Maroon</Color>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>textbox3</rd:DefaultName>
+        <Top>5.75in</Top>
+        <Left>0.125in</Left>
+        <Height>0.625in</Height>
+        <Width>8.875in</Width>
+        <ZIndex>4</ZIndex>
+        <Style>
+          <Border>
+            <Color>Silver</Color>
+            <Style>Solid</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Chart Name="chart1">
+        <ChartCategoryHierarchy>
+          <ChartMembers>
+            <ChartMember>
+              <Group Name="chart1_CategoryGroup1">
+                <GroupExpressions>
+                  <GroupExpression>=Fields!spinlock_name.Value</GroupExpression>
+                </GroupExpressions>
+              </Group>
+              <Label>=Fields!spinlock_name.Value</Label>
+              <DataElementOutput>Output</DataElementOutput>
+            </ChartMember>
+          </ChartMembers>
+        </ChartCategoryHierarchy>
+        <ChartSeriesHierarchy>
+          <ChartMembers>
+            <ChartMember>
+              <Label />
+            </ChartMember>
+          </ChartMembers>
+        </ChartSeriesHierarchy>
+        <ChartData>
+          <ChartSeriesCollection>
+            <ChartSeries Name="Series1">
+              <ChartDataPoints>
+                <ChartDataPoint>
+                  <ChartDataPointValues>
+                    <Y>=Sum(Fields!spindiff_per_collisiondiff.Value)</Y>
+                  </ChartDataPointValues>
+                  <ChartDataLabel>
+                    <Style>
+                      <FontSize>8pt</FontSize>
+                    </Style>
+                    <Label>=Floor(Fields!spindiff_per_collisiondiff.Value)</Label>
+                    <Visible>true</Visible>
+                  </ChartDataLabel>
+                  <Style>
+                    <Border>
+                      <Width>0.376pt</Width>
+                    </Border>
+                    <Color>BlueViolet</Color>
+                  </Style>
+                  <ChartMarker>
+                    <Size>6pt</Size>
+                    <Style />
+                  </ChartMarker>
+                </ChartDataPoint>
+              </ChartDataPoints>
+              <Style />
+              <ChartEmptyPoints>
+                <Style />
+                <ChartMarker>
+                  <Style />
+                </ChartMarker>
+                <ChartDataLabel>
+                  <Style />
+                </ChartDataLabel>
+              </ChartEmptyPoints>
+              <CustomProperties>
+                <CustomProperty>
+                  <Name>PointWidth</Name>
+                  <Value>0.6</Value>
+                </CustomProperty>
+                <CustomProperty>
+                  <Name>DrawingStyle</Name>
+                  <Value>Cylinder</Value>
+                </CustomProperty>
+              </CustomProperties>
+              <ValueAxisName>Primary</ValueAxisName>
+              <CategoryAxisName>Primary</CategoryAxisName>
+              <ChartSmartLabel>
+                <CalloutLineColor>Black</CalloutLineColor>
+                <MinMovingDistance>0pt</MinMovingDistance>
+              </ChartSmartLabel>
+            </ChartSeries>
+          </ChartSeriesCollection>
+        </ChartData>
+        <ChartAreas>
+          <ChartArea Name="Default">
+            <ChartCategoryAxes>
+              <ChartAxis Name="Primary">
+                <Style>
+                  <Border>
+                    <Style>None</Style>
+                    <Width>0.75pt</Width>
+                  </Border>
+                  <FontSize>8pt</FontSize>
+                </Style>
+                <ChartAxisTitle>
+                  <Caption />
+                  <Style>
+                    <FontSize>8pt</FontSize>
+                  </Style>
+                </ChartAxisTitle>
+                <Margin>False</Margin>
+                <Interval>1</Interval>
+                <ChartMajorGridLines>
+                  <Enabled>False</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                </ChartMajorGridLines>
+                <ChartMinorGridLines>
+                  <Enabled>False</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                  <IntervalOffset>-1</IntervalOffset>
+                </ChartMinorGridLines>
+                <ChartMajorTickMarks>
+                  <Enabled>True</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                </ChartMajorTickMarks>
+                <ChartMinorTickMarks>
+                  <Type>None</Type>
+                </ChartMinorTickMarks>
+                <PreventFontShrink>true</PreventFontShrink>
+                <PreventFontGrow>true</PreventFontGrow>
+                <IncludeZero>false</IncludeZero>
+              </ChartAxis>
+              <ChartAxis Name="Secondary">
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+                <ChartAxisTitle>
+                  <Caption />
+                  <Style>
+                    <FontSize>8pt</FontSize>
+                  </Style>
+                </ChartAxisTitle>
+                <CrossAt>NaN</CrossAt>
+                <Location>Opposite</Location>
+                <Minimum>NaN</Minimum>
+                <Maximum>NaN</Maximum>
+              </ChartAxis>
+            </ChartCategoryAxes>
+            <ChartValueAxes>
+              <ChartAxis Name="Primary">
+                <Style>
+                  <Border>
+                    <Style>None</Style>
+                    <Width>0.75pt</Width>
+                  </Border>
+                </Style>
+                <ChartAxisTitle>
+                  <Caption>Avg. Spins/Collisions</Caption>
+                  <Style>
+                    <FontSize>8pt</FontSize>
+                  </Style>
+                </ChartAxisTitle>
+                <Margin>True</Margin>
+                <ChartMajorGridLines>
+                  <Enabled>True</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                </ChartMajorGridLines>
+                <ChartMinorGridLines>
+                  <Enabled>False</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                </ChartMinorGridLines>
+                <ChartMajorTickMarks>
+                  <Enabled>True</Enabled>
+                  <Style>
+                    <Border>
+                      <Style>Solid</Style>
+                      <Width>0.75pt</Width>
+                    </Border>
+                  </Style>
+                  <Interval>NaN</Interval>
+                </ChartMajorTickMarks>
+                <ChartMinorTickMarks>
+                  <Type>None</Type>
+                </ChartMinorTickMarks>
+                <Scalar>true</Scalar>
+                <Minimum>0</Minimum>
+                <PreventFontShrink>true</PreventFontShrink>
+                <PreventFontGrow>true</PreventFontGrow>
+                <IncludeZero>false</IncludeZero>
+              </ChartAxis>
+              <ChartAxis Name="Secondary">
+                <Style>
+                  <FontSize>8pt</FontSize>
+                </Style>
+                <ChartAxisTitle>
+                  <Caption />
+                  <Style>
+                    <FontSize>8pt</FontSize>
+                  </Style>
+                </ChartAxisTitle>
+                <CrossAt>NaN</CrossAt>
+                <Location>Opposite</Location>
+                <Minimum>NaN</Minimum>
+                <Maximum>NaN</Maximum>
+              </ChartAxis>
+            </ChartValueAxes>
+            <ChartThreeDProperties>
+              <Enabled>true</Enabled>
+              <ProjectionMode>Perspective</ProjectionMode>
+              <Rotation>0</Rotation>
+              <Inclination>25</Inclination>
+              <WallThickness>0</WallThickness>
+              <Clustered>true</Clustered>
+            </ChartThreeDProperties>
+            <Style>
+              <Border>
+                <Style>Solid</Style>
+                <Width>0.75pt</Width>
+              </Border>
+              <BackgroundColor>LightSteelBlue</BackgroundColor>
+            </Style>
+          </ChartArea>
+        </ChartAreas>
+        <ChartLegends>
+          <ChartLegend Name="Default">
+            <Hidden>true</Hidden>
+            <Style>
+              <Border>
+                <Style>Solid</Style>
+                <Width>0.75pt</Width>
+              </Border>
+            </Style>
+            <Position>RightCenter</Position>
+            <Layout>Column</Layout>
+            <ChartLegendTitle>
+              <Caption />
+              <Style>
+                <FontSize>8pt</FontSize>
+                <FontWeight>Bold</FontWeight>
+                <TextAlign>Center</TextAlign>
+              </Style>
+            </ChartLegendTitle>
+            <AutoFitTextDisabled>true</AutoFitTextDisabled>
+          </ChartLegend>
+        </ChartLegends>
+        <ChartTitles>
+          <ChartTitle Name="Default">
+            <Caption>Top Spinlock Categories</Caption>
+            <Style>
+              <FontSize>8pt</FontSize>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </ChartTitle>
+        </ChartTitles>
+        <ChartBorderSkin>
+          <ChartBorderSkinType>Emboss</ChartBorderSkinType>
+          <Style>
+            <BackgroundColor>Gray</BackgroundColor>
+            <BackgroundGradientType>None</BackgroundGradientType>
+            <Color>White</Color>
+          </Style>
+        </ChartBorderSkin>
+        <ChartNoDataMessage Name="NoDataMessage">
+          <Caption>No Data Available</Caption>
+          <Style>
+            <BackgroundGradientType>None</BackgroundGradientType>
+            <TextAlign>General</TextAlign>
+            <VerticalAlign>Top</VerticalAlign>
+          </Style>
+        </ChartNoDataMessage>
+        <DataSetName>sqlnexus</DataSetName>
+        <Top>1.25in</Top>
+        <Left>0.125in</Left>
+        <Height>4.5in</Height>
+        <Width>8.875in</Width>
+        <ZIndex>5</ZIndex>
+        <CustomProperties>
+          <CustomProperty>
+            <Name>__Upgraded2005__</Name>
+            <Value>__Upgraded2005__</Value>
+          </CustomProperty>
+        </CustomProperties>
+        <Style>
+          <Border>
+            <Color>Silver</Color>
+            <Style>Solid</Style>
+          </Border>
+          <BackgroundColor>White</BackgroundColor>
+        </Style>
+      </Chart>
+    </ReportItems>
+    <Height>7in</Height>
+    <Style />
+  </Body>
+  <ReportParameters>
+    <ReportParameter Name="dsServerName">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>Server Name</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="dsDatabaseName">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>Database Name</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="FmtAmbientBackground">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>#E8F8FF</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>FmtAmbientBackground</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+  </ReportParameters>
+  <Width>9.45098in</Width>
+  <Page>
+    <LeftMargin>1in</LeftMargin>
+    <RightMargin>1in</RightMargin>
+    <TopMargin>1in</TopMargin>
+    <BottomMargin>1in</BottomMargin>
+    <Style />
+  </Page>
+  <Language>en-US</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportID>064bed88-bef0-40a9-bfa1-0f3b4dfa6a35</rd:ReportID>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+</Report>

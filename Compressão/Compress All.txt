@@ -1,0 +1,89 @@
+--http://www.sqlservercentral.com/scripts/Compression/106664/
+
+SET NOCOUNT ON
+DECLARE @db_name VARCHAR(50);
+DECLARE @sql VARCHAR(max);
+DECLARE @comp CHAR(4);
+SET @comp = 'PAGE'; -- Desired Compression Type
+
+-- Create Cursor for all non-system databases, running in compatibility level above 90, online and not read-only.
+DECLARE cur_dbs CURSOR FOR 
+	SELECT name
+	FROM sys.databases 
+	WHERE database_id > 4
+		AND compatibility_level > 90
+		AND is_read_only = 0
+		AND state = 0
+		-- AND name NOT IN ('exclude_my_database1','exclude_my_database2')
+	ORDER BY database_id
+
+IF  EXISTS (
+	SELECT * FROM tempdb.sys.objects WHERE type = 'U' AND object_id = OBJECT_ID(N'tempdb..#TempCompressTable')
+	)
+DROP TABLE #TempCompressTable;
+
+CREATE TABLE #TempCompressTable (
+	Rows BIGINT
+	,db_name NVARCHAR(255)
+	,CompressStatement NVARCHAR(2000)
+	,create_date DATETIME
+	,modify_date DATETIME
+);
+
+OPEN cur_dbs
+
+FETCH NEXT FROM cur_dbs INTO @db_name;
+WHILE @@FETCH_STATUS = 0
+   BEGIN
+     SET @sql = 'USE ['+@db_name+'];' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + 'INSERT INTO #TempCompressTable' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + 'SELECT ' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + '	ROWS' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + '	,db_name() AS db_name ' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + '	,[--CompressStatement]  ' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + '	,create_date' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + '	,modify_date' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + 'FROM (' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	SELECT p.rows AS rows, ''BEGIN TRY ALTER TABLE ['' + db_name() + ''].['' + SCHEMA_NAME(schema_id) + ''].['' + name + ''] REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = '+@comp+', ONLINE = ON); PRINT ''''ONLINE:  ['' + db_name() + ''].['' + SCHEMA_NAME(schema_id) + ''].['' + name + ''];'''' END TRY BEGIN CATCH ALTER TABLE ['' + db_name() + ''].['' + SCHEMA_NAME(schema_id) + ''].['' + name + ''] REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = '+@comp+', ONLINE = OFF); PRINT ''''OFFLINE: ['' + db_name() + ''].['' + SCHEMA_NAME(schema_id) + ''].['' + name + '']''''; END CATCH;'' AS [--CompressStatement], create_date, modify_date ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	--SELECT *' + CHAR(13) + CHAR(10)
+	 SET @sql = @sql + 'FROM' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		sys.objects o' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		,sys.partitions p' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	WHERE ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		p.object_id = o.object_id' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND type = ''U'' ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND p.index_id <= 1' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND o.name <> ''sysdiagrams''' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND p.partition_number = 1' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND o.is_ms_shipped = 0 ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND data_compression = 0 -- all uncompressed user tables' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	UNION' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	SELECT p.rows AS rows, ''BEGIN TRY ALTER INDEX ['' + i.name + ''] ON ['' + db_name() + ''].['' + SCHEMA_NAME(o.schema_id) + ''].['' + OBJECT_NAME(i.object_id) + ''] REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = '+@comp+', ONLINE = ON); PRINT ''''ONLINE:  ['' + db_name() + ''].['' + i.name + ''] ON ['' + OBJECT_NAME(i.object_id) + ''];'''' END TRY BEGIN CATCH ALTER INDEX ['' + i.name + ''] ON ['' + db_name() + ''].['' + SCHEMA_NAME(o.schema_id) + ''].['' + OBJECT_NAME(i.object_id) + ''] REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = '+@comp+', ONLINE = OFF); PRINT ''''OFFLINE: ['' + db_name() + ''].['' + i.name + ''] ON ['' + OBJECT_NAME(i.object_id) + '']''''; END CATCH;'' AS [--CompressStatement], create_date, modify_date ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	FROM ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		sys.indexes i' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		,sys.objects o' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		,sys.partitions p' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '	WHERE' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		o.object_id = i.object_id' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND o.object_id = p.object_id' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND i.type = 2 -- nonclustered index' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND i.name <> ''UK_principal_name'' -- nonclustered index' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND p.partition_number = 1' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND p.index_id > 1 -- nonclustered index' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND o.is_ms_shipped = 0 ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND NOT o.type in (''TF'',''FN'')' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND data_compression = 0 -- all uncompressed user tables' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + '		AND o.schema_id NOT IN (3,4)  ' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + ') x' + CHAR(13) + CHAR(10)
+     SET @sql = @sql + 'ORDER BY ROWS DESC, [--CompressStatement] DESC' + CHAR(13) + CHAR(10)
+     EXEC (@sql)
+     FETCH NEXT FROM cur_dbs INTO @db_name;
+   END;
+DEALLOCATE cur_dbs;
+
+-- Retrieve the compression statements. If everything needs to be compressed, select the content of the column "CompressStatement" and run it manually.
+SELECT * 
+FROM #TempCompressTable
+ORDER BY db_name, Rows ASC
+
+

@@ -1,0 +1,22 @@
+https://www.mssqltips.com/sqlservertip/1853/sql-server-tempdb-usage-and-bottlenecks-tracked-with-extended-events/
+
+--Drop the event if it already exists
+DROP EVENT SESSION Monitor_wait_info_tempdb ON SERVER; 
+GO 
+--Create the event 
+CREATE EVENT SESSION Monitor_wait_info_tempdb ON SERVER 
+--We are looking at wait info only
+ADD EVENT sqlos.wait_info
+( 
+   --Add additional columns to track
+   ACTION (sqlserver.database_id, sqlserver.sql_text, sqlserver.session_id, sqlserver.tsql_stack)  
+    WHERE sqlserver.database_id = 2 --filter database id = 2 i.e tempdb
+    --This allows us to track wait statistics at database granularity
+) --As a best practise use asynchronous file target, reduces overhead.
+ADD TARGET package0.asynchronous_file_target(
+     SET filename='c:\Monitor_wait_info_tempdb.etl', metadatafile='c:\Monitor_wait_info_tempdb.mta')
+GO
+--Now start the session
+ALTER EVENT SESSION Monitor_wait_info_tempdb ON SERVER
+STATE = START;
+GO

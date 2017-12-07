@@ -1,0 +1,1 @@
+https://www.simple-talk.com/sql/database-administration/managing-data-growth-in-sql-server/

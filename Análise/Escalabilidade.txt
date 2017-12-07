@@ -1,0 +1,1 @@
+http://www.brentozar.com/archive/2011/11/how-stackoverflow-scales-sql-server-video/

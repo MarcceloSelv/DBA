@@ -1,0 +1,1 @@
+http://www.mssqltips.com/sqlservertip/2155/getting-started-with-extended-events-in-sql-server-2008/

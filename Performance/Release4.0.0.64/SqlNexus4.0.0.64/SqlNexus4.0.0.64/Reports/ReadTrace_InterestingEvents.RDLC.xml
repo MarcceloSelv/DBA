@@ -1,0 +1,3 @@
+<report>
+  <validate script="ReadTraceReportValidate.sql" />
+</report>

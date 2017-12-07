@@ -1,0 +1,531 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition">
+  <DataSources>
+    <DataSource Name="SqlNexusPrivate">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>="data source=" &amp; Parameters!dsServerName.Value &amp; ";initial catalog="&amp;Parameters!dsDatabaseName.Value</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:DataSourceID>6b565741-f8ec-4aa2-ad6c-06f91634ff1d</rd:DataSourceID>
+      <rd:SecurityType>Windows</rd:SecurityType>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="DataSet_ServerInfo">
+      <Fields>
+        <Field Name="Name">
+          <DataField>Name</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>SqlNexusPrivate</DataSourceName>
+        <CommandText>if object_id ('tblDiagScan') is not null
+begin
+--handles dup
+delete scan
+from tblDiagScan scan inner join 
+(select ROW_NUMBER() over (order by scanid desc) row_num, scanid from tblDiagscan where TYPE = 'ServerInfo' and col1 like '%number of proc%') t on scan.scanid=t.scanid and t.row_num = 2
+delete scan
+from tblDiagScan scan inner join 
+(select ROW_NUMBER() over (order by scanid desc) row_num, scanid from tblDiagscan where TYPE = 'ServerInfo' and col1 like '%Machine Name%') t on scan.scanid=t.scanid and t.row_num = 2
+select distinct col1 'Name'  from tblDiagScan where TYPE='ServerInfo' and col1 not in ( 'VM -', 'Total RAM -', 'Win Bit Version -', '', '*******   Environment    (paste in MSSolve)' )
+end
+else
+begin
+	select null as 'Name'
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_sp_Configure">
+      <Fields>
+        <Field Name="Name">
+          <DataField>Name</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+        <Field Name="run_value">
+          <DataField>run_value</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>SqlNexusPrivate</DataSourceName>
+        <CommandText>if OBJECT_ID('dbo.tbl_SPCONFIGURE') is not null
+	select name, run_value from tbl_SPCONFIGURE where ISNUMERIC(run_value) = 1
+	</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_DBFiles">
+      <Fields>
+        <Field Name="DBName">
+          <DataField>DBName</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+        <Field Name="LogicalName">
+          <DataField>LogicalName</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+        <Field Name="PhysicalName">
+          <DataField>PhysicalName</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>SqlNexusPrivate</DataSourceName>
+        <CommandText>--select col1 'DBName', col2 'DBID', col3 'FileList', AlertLevel from tblDiagScan where TYPE='DBFiles' order by col1, col2
+if object_id ('tblDiagScan') is not null
+begin
+select col1 'DBName', col2 'LogicalName', col3 'PhysicalName', AlertLevel from tblDiagScan where TYPE='DBFiles' 
+and col1 not in ('', 'database_id')
+and col1 not like '%----%'
+order by col1, col2
+end
+else
+begin
+select NULL 'DBName', NULL 'LogicalName', NULL 'PhysicalName', NULL AlertLevel 
+end</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+    <DataSet Name="DataSet_DataAvailable">
+      <Fields>
+        <Field Name="rows">
+          <DataField>rows</DataField>
+          <rd:UserDefined>true</rd:UserDefined>
+        </Field>
+      </Fields>
+      <Query>
+        <DataSourceName>SqlNexusPrivate</DataSourceName>
+        <CommandText>if OBJECT_ID ('tblDiagScan') is not null
+	select COUNT (*) 'rows' from tblDiagScan
+else
+	select 0  as rows</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+    </DataSet>
+  </DataSets>
+  <Body>
+    <ReportItems>
+      <Textbox Name="textbox16">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>Server and Database Configuration </Value>
+                <Style>
+                  <FontFamily>Trebuchet MS</FontFamily>
+                  <FontSize>16pt</FontSize>
+                  <FontWeight>Bold</FontWeight>
+                </Style>
+              </TextRun>
+            </TextRuns>
+            <Style>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Paragraph>
+        </Paragraphs>
+        <Top>0.51042in</Top>
+        <Left>0.65292in</Left>
+        <Height>0.35417in</Height>
+        <Width>9.86459in</Width>
+        <Style>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Tablix Name="Tablix2">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn>
+              <Width>5.67708in</Width>
+            </TablixColumn>
+            <TablixColumn>
+              <Width>4.21876in</Width>
+            </TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.26562in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Textbox6">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Sp_Configure Values</Value>
+                              <Style>
+                                <FontSize>14pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Center</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Textbox6</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Textbox2">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>run value</Value>
+                              <Style>
+                                <FontSize>14pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Center</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Textbox2</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.26562in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Name1">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!Name.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Name1</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="run_value">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!run_value.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>run_value</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember />
+            <TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <KeepWithGroup>After</KeepWithGroup>
+            </TablixMember>
+            <TablixMember>
+              <Group Name="Details1" />
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>DataSet_sp_Configure</DataSetName>
+        <Top>1.98625in</Top>
+        <Left>0.62167in</Left>
+        <Height>0.53124in</Height>
+        <Width>9.89584in</Width>
+        <ZIndex>1</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+        </Style>
+      </Tablix>
+      <Tablix Name="Tablix3">
+        <TablixBody>
+          <TablixColumns>
+            <TablixColumn>
+              <Width>9.90625in</Width>
+            </TablixColumn>
+          </TablixColumns>
+          <TablixRows>
+            <TablixRow>
+              <Height>0.27083in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Textbox17">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>Server Configuraton Values</Value>
+                              <Style>
+                                <FontSize>14pt</FontSize>
+                                <FontWeight>Bold</FontWeight>
+                              </Style>
+                            </TextRun>
+                          </TextRuns>
+                          <Style>
+                            <TextAlign>Center</TextAlign>
+                          </Style>
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Textbox17</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+            <TablixRow>
+              <Height>0.27083in</Height>
+              <TablixCells>
+                <TablixCell>
+                  <CellContents>
+                    <Textbox Name="Name">
+                      <CanGrow>true</CanGrow>
+                      <KeepTogether>true</KeepTogether>
+                      <Paragraphs>
+                        <Paragraph>
+                          <TextRuns>
+                            <TextRun>
+                              <Value>=Fields!Name.Value</Value>
+                              <Style />
+                            </TextRun>
+                          </TextRuns>
+                          <Style />
+                        </Paragraph>
+                      </Paragraphs>
+                      <rd:DefaultName>Name</rd:DefaultName>
+                      <Style>
+                        <Border>
+                          <Color>LightGrey</Color>
+                          <Style>Solid</Style>
+                        </Border>
+                        <PaddingLeft>2pt</PaddingLeft>
+                        <PaddingRight>2pt</PaddingRight>
+                        <PaddingTop>2pt</PaddingTop>
+                        <PaddingBottom>2pt</PaddingBottom>
+                      </Style>
+                    </Textbox>
+                  </CellContents>
+                </TablixCell>
+              </TablixCells>
+            </TablixRow>
+          </TablixRows>
+        </TablixBody>
+        <TablixColumnHierarchy>
+          <TablixMembers>
+            <TablixMember />
+          </TablixMembers>
+        </TablixColumnHierarchy>
+        <TablixRowHierarchy>
+          <TablixMembers>
+            <TablixMember>
+              <KeepWithGroup>After</KeepWithGroup>
+            </TablixMember>
+            <TablixMember>
+              <Group Name="Details" />
+            </TablixMember>
+          </TablixMembers>
+        </TablixRowHierarchy>
+        <DataSetName>DataSet_ServerInfo</DataSetName>
+        <Top>1.12167in</Top>
+        <Left>0.62167in</Left>
+        <Height>0.54166in</Height>
+        <Width>9.90625in</Width>
+        <ZIndex>2</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+        </Style>
+      </Tablix>
+    </ReportItems>
+    <Height>5.80416in</Height>
+    <Style>
+      <Border />
+    </Style>
+  </Body>
+  <ReportParameters>
+    <ReportParameter Name="dsServerName">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>jackli2008\katmai64bit</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>Server Name</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="dsDatabaseName">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>SqlNexus</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>Database Name</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="FmtAmbientBackground">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>#E8F8FF</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>FmtAmbientBackground</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="FmtChartBackground">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value>LightSteelBlue</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>FmtChartBackground</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="FmtError">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>Red</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>FmtError</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="FmtWarning">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>Yellow</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>FmtWarning</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+  </ReportParameters>
+  <Width>11.52792in</Width>
+  <Page>
+    <InteractiveHeight>40in</InteractiveHeight>
+    <InteractiveWidth>10in</InteractiveWidth>
+    <LeftMargin>0.5in</LeftMargin>
+    <RightMargin>0.5in</RightMargin>
+    <TopMargin>0.5in</TopMargin>
+    <BottomMargin>0.5in</BottomMargin>
+    <Style>
+      <BackgroundColor>=Parameters!FmtAmbientBackground.Value</BackgroundColor>
+    </Style>
+  </Page>
+  <EmbeddedImages>
+    <EmbeddedImage Name="warning">
+      <MIMEType>image/gif</MIMEType>
+      <ImageData>R0lGODdhDwARAKUAAPz+/KRyLKR2NPzGZKx6NPzKbPzGbIRWFIxeHPzKZKx+PJxqHLSCRPzOfPzOdLSKTPzShJRmHLSGTLyOVPzWjIxiHJRiHLyOTLySVPzanPzalMSWXPzipPzepIRaFMSSXPzmrHxSFHxWFMSaZPzqtPzqvPzuxPzqxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACwAAAAADwARAEAGekCAcEgsCieUZMViSVIuxqhxRCKVQlgraUQkFAyDwwExMCQIxJF6zeYON5wOx0Pv2D9ERsPR6PsbDEQBg4SFAVKIQiMmjIwnJ4xuQhsglSEiIpUgG0QYGRkaCKIanxhEDxCpEaupEBJECgWyoguyBQpEAgO7vLwCiVFBADs=</ImageData>
+    </EmbeddedImage>
+  </EmbeddedImages>
+  <Language>en-US</Language>
+  <ConsumeContainerWhitespace>true</ConsumeContainerWhitespace>
+  <rd:ReportID>c3d56265-155e-47a8-b4d6-b3b2a50f269b</rd:ReportID>
+  <rd:ReportUnitType>Inch</rd:ReportUnitType>
+</Report>

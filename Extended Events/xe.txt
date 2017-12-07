@@ -1,0 +1,57 @@
+
+http://www.brentozar.com/archive/2014/02/extended-events-tracking-code-improvements-video/
+http://jasonbrimhall.info/2015/10/15/better-practices-for-reading-event_file-targets/
+https://www.sqlskills.com/blogs/jonathan/tracking-extended-events-for-a-sql-agent-job/
+https://www.mssqltips.com/sqlservertip/2369/using-extended-events-to-troubleshoot-sql-server-issues/
+https://technet.microsoft.com/en-us/library/ff878114(v=sql.110).aspx
+https://technet.microsoft.com/en-us/library/dd822788(v=sql.100).aspx
+http://sqlblog.com/blogs/jonathan_kehayias/archive/2009/11/03/extended-events-ssms-addin-update-1-0-2-62.aspx
+http://www.sqlteam.com/article/introduction-to-sql-server-2008-extended-events
+
+
+https://www.sqlskills.com/blogs/jonathan/an-xevent-a-day-13-of-31-the-system_health-session/
+https://www.sqlskills.com/blogs/jonathan/incorrect-timestamp-on-events-in-extended-events/
+
+--DROP EVENT SESSION [system_health] ON SERVER
+--GO
+CREATE EVENT SESSION [system_health2]
+ON SERVER
+ADD EVENT sqlserver.error_reported(
+ ACTION (package0.callstack, sqlserver.session_id, sqlserver.sql_text,
+        sqlserver.tsql_stack, package0.collect_system_time)
+ WHERE (([severity]>=(20) OR ([error]=(17803) OR [error]=(701)
+        OR [error]=(802) OR [error]=(8645) 
+    OR [error]=(8651) OR [error]=(8657) OR [error]=(8902))))),
+ADD EVENT sqlos.scheduler_monitor_non_yielding_ring_buffer_recorded,
+ADD EVENT sqlserver.xml_deadlock_report,
+ADD EVENT sqlos.wait_info(
+ ACTION (package0.callstack, sqlserver.session_id, sqlserver.sql_text, package0.collect_system_time)
+ WHERE (([duration]>(15000) AND ([wait_type]>(31) AND ([wait_type]>(47) 
+AND [wait_type]<(54) OR [wait_type]<(38) OR [wait_type]>(63) 
+AND [wait_type]<(70) OR [wait_type]>(96) 
+AND [wait_type]<(100) OR [wait_type]=(107) OR [wait_type]=(113) OR [wait_type]>(174) 
+AND [wait_type]<(179) OR [wait_type]=(186) OR [wait_type]=(207) OR [wait_type]=(269) 
+        OR [wait_type]=(283) OR [wait_type]=(284)) OR [duration]>(30000) 
+        AND [wait_type]<(22))))),
+ADD EVENT sqlos.wait_info_external(
+ ACTION (package0.callstack, sqlserver.session_id, sqlserver.sql_text, package0.collect_system_time)
+ WHERE (([duration]>(5000) AND ([wait_type]>(365) 
+AND [wait_type]<(372) OR [wait_type]>(372) 
+AND [wait_type]<(377) OR [wait_type]>(377) 
+AND [wait_type]<(383) OR [wait_type]>(420) 
+AND [wait_type]<(424) OR [wait_type]>(426) 
+AND [wait_type]<(432) OR [wait_type]>(432) 
+AND [wait_type]<(435) OR [duration]>(45000) 
+AND ([wait_type]>(382) 
+AND [wait_type]<(386) OR [wait_type]>(423) 
+AND [wait_type]<(427) OR [wait_type]>(434) 
+AND [wait_type]<(437) OR [wait_type]>(442) 
+AND [wait_type]<(451) OR [wait_type]>(451) 
+AND [wait_type]<(473) OR [wait_type]>(484) 
+AND [wait_type]<(499) OR [wait_type]=(365) OR [wait_type]=(372) OR [wait_type]=(377) 
+    OR [wait_type]=(387) OR [wait_type]=(432) OR [wait_type]=(502))))))
+ADD TARGET package0.ring_buffer(
+ SET max_memory=12MB)
+WITH (MAX_MEMORY = 12MB, EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS,
+    MAX_DISPATCH_LATENCY = 3 SECONDS, MAX_EVENT_SIZE = 0KB,
+    MEMORY_PARTITION_MODE = NONE, TRACK_CAUSALITY = OFF, STARTUP_STATE = ON)

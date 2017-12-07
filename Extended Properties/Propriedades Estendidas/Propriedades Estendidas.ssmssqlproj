@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="Propriedades Estendidas">
+  <Items>
+    <LogicalFolder Name="Conexões" Type="2" Sorted="true">
+      <Items>
+        <ConnectionNode Name="192.168.3.3:SISTEMA">
+          <Created>2017-05-22T11:51:24.3227219-03:00</Created>
+          <Type>SQL</Type>
+          <Server>192.168.3.3</Server>
+          <UserName>SISTEMA</UserName>
+          <Authentication>SQL</Authentication>
+          <InitialDB>CARGOSOL</InitialDB>
+          <LoginTimeout>15</LoginTimeout>
+          <ExecutionTimeout>0</ExecutionTimeout>
+          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
+          <ApplicationName />
+        </ConnectionNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Consultas" Type="0" Sorted="true">
+      <Items>
+        <FileNode Name="Trigger_Audit_Signa.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>Trigger_Audit_Signa.sql</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Diversos" Type="3" Sorted="true">
+      <Items />
+    </LogicalFolder>
+  </Items>
+</SqlWorkbenchSqlProject>

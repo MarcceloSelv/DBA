@@ -1,0 +1,115 @@
+ SELECT
+	DB_NAME(st.dbid),
+	StatementText	= txt.StatementTextVarchar,
+	execution_count = execution_count,
+	worker_time_avg = (qs.total_worker_time / qs.execution_count),
+	elapsed_time_avg  = (qs.total_elapsed_time / qs.execution_count)
+ FROM	SYS.dm_exec_query_stats qs
+	CROSS APPLY SYS.dm_exec_sql_text(qs.sql_handle) st
+	CROSS APPLY (
+		Select	StatementTextXml = Cast(StatementTextVarchar As Xml),
+			StatementTextVarchar = Replace(Replace(StatementTextVarchar, '<?x', ''), '?>', '')
+			From (
+			Select Case
+					When qs.statement_end_offset > 0 Then
+					Substring
+					(st.text, 
+					(qs.statement_start_offset / 2) + 1, 
+					(CASE qs.statement_end_offset 
+						WHEN -1 THEN DATALENGTH(st.text) 
+						ELSE qs.statement_end_offset 
+					 END - qs.statement_start_offset) / 2 + 1)
+				Else st.text
+				End as [processing-instruction(x)]
+			FOR XML PATH('')
+			) t(StatementTextVarchar)
+	) txt
+	--CROSS APPLY dbo.FN_Get_Statement_Text(qs.statement_start_offset, qs.statement_end_offset, st.text) txt
+	--INNER JOIN  qs ON qs.sql_handle = ps.sql_handle
+	--OUTER APPLY ECARGO.SYS.dm_exec_query_plan(qs.plan_handle) pp
+ WHERE	st.objectid = object_id('ECARGO..TR_040_GRA_STATUS_TRACKING_EMB04')
+ ORDER BY (qs.total_worker_time / qs.execution_count) desc
+
+
+
+
+
+ SELECT	Top 50 
+	DB_NAME(st.dbid),
+	o.name,
+	StatementText	= txt.StatementTextVarchar,
+	execution_count = execution_count,
+	worker_time_avg = (qs.total_worker_time / qs.execution_count),
+	elapsed_time_avg  = (qs.total_elapsed_time / qs.execution_count),
+	qs.last_execution_time,
+	qs.last_elapsed_time
+ FROM	SYS.dm_exec_query_stats qs
+	CROSS APPLY SYS.dm_exec_sql_text(qs.sql_handle) st
+	CROSS APPLY (
+		Select	StatementTextXml = Cast(StatementTextVarchar As Xml),
+			StatementTextVarchar = Replace(Replace(StatementTextVarchar, '<?x', ''), '?>', '')
+			From (
+			Select Case
+					When qs.statement_end_offset > 0 Then
+					Substring
+					(st.text, 
+					(qs.statement_start_offset / 2) + 1, 
+					(CASE qs.statement_end_offset 
+						WHEN -1 THEN DATALENGTH(st.text) 
+						ELSE qs.statement_end_offset 
+					 END - qs.statement_start_offset) / 2 + 1)
+				Else st.text
+				End as [processing-instruction(x)]
+			FOR XML PATH('')
+			) t(StatementTextVarchar)
+	) txt
+	INNER JOIN ECARGO.sys.objects O ON O.object_id = st.objectid
+ ORDER BY (qs.total_elapsed_time / qs.execution_count) desc
+
+SP_HELPTEXT_SIG SP_040_AGRUPA_FAT34, @HTML=1
+189.42.148.226
+
+
+
+USE MASTER
+
+ SELECT	Top 50 
+	DB_NAME(st.dbid),
+	o.name,
+	StatementText	= txt.StatementTextVarchar,
+	execution_count = Sum(execution_count),
+	--worker_time_avg = CONVERT(VARCHAR,DATEADD(ms, Sum(qs.total_worker_time) / Sum(qs.execution_count)/ 1000,0),114),
+	--elapsed_time_avg  = CONVERT(VARCHAR,DATEADD(ms,(Sum(qs.total_elapsed_time) / Sum(qs.execution_count))/ 1000,0),114),
+	--last_execution_time = Max(qs.last_execution_time),
+	--last_elapsed_time = CONVERT(VARCHAR,DATEADD(ms, Max(qs.last_elapsed_time)/1000,0),114)
+	logical_reads_avg  = Sum(qs.total_logical_reads) / Sum(qs.execution_count),
+	physical_reads_avg  = Sum(qs.total_physical_reads) / Sum(qs.execution_count)
+
+ FROM	SYS.dm_exec_query_stats qs
+	CROSS APPLY SYS.dm_exec_sql_text(qs.sql_handle) st
+	CROSS APPLY (
+		Select	StatementTextXml = Cast(StatementTextVarchar As Xml),
+			StatementTextVarchar = Replace(Replace(StatementTextVarchar, '<?x', ''), '?>', '')
+			From (
+			Select Case
+					When qs.statement_end_offset > 0 Then
+					Substring
+					(st.text, 
+					(qs.statement_start_offset / 2) + 1, 
+					(CASE qs.statement_end_offset 
+						WHEN -1 THEN DATALENGTH(st.text) 
+						ELSE qs.statement_end_offset 
+					 END - qs.statement_start_offset) / 2 + 1)
+				Else st.text
+				End as [processing-instruction(x)]
+			FOR XML PATH('')
+			) t(StatementTextVarchar)
+	) txt
+	INNER JOIN ECARGO.sys.objects O ON O.object_id = st.objectid
+Where  qs.execution_count > 10
+Group By st.dbid, o.name, txt.StatementTextVarchar
+ ORDER BY (Sum(qs.total_logical_reads) / Sum(qs.execution_count)) desc
+
+
+
+http://www.brentozar.com/archive/2014/07/execution-plans-plan-guides-norecompute/

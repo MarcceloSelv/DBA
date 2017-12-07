@@ -1,0 +1,3 @@
+http://www.sqlteam.com/article/advanced-sql-server-2008-extended-events-with-examples
+
+https://www.sqlskills.com/blogs/jonathan/category/extended-events/

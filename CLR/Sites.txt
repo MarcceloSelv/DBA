@@ -1,0 +1,9 @@
+https://msdn.microsoft.com/en-us/library/ms187894.aspx
+
+https://www.simple-talk.com/sql/t-sql-programming/clr-performance-testing/
+
+http://msdn.microsoft.com/en-us/library/ms131075.aspx
+
+http://www.sqlservercentral.com/articles/SQL+CLR/3208/
+
+http://www.sqlservercentral.com/articles/SQLCLR/68850/

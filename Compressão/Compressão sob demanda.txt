@@ -1,0 +1,93 @@
+http://sqlblog.com/blogs/greg_low/archive/2015/03/05/suggest-compression-strategies-for-tables-and-indexes.aspx
+
+DECLARE @ClusteredColumnstoreScansCutoff int = 95;
+DECLARE @ClusteredColumnstoreUpdatesCutoff int = 10;
+DECLARE @ClusteredColumnstoreSeeksLookupsCutoff int = 5;
+DECLARE @ClusteredColumnstoreTotalRowsCutoff bigint = 800000;
+ 
+DECLARE @PageCompressionScansCutoff int = 75;
+DECLARE @PageCompressionUpdatesCutoff int = 20;
+ 
+DECLARE @IsClusteredColumnstoreSupported bit = 1;
+-----------------------------------------------------------------------------
+ 
+WITH IndexUsageStats
+AS
+( SELECT object_id AS ObjectID,
+         index_id AS IndexID,
+         COALESCE(user_seeks, 0) + COALESCE(system_seeks, 0) AS Seeks,
+         COALESCE(user_scans, 0) + COALESCE(system_scans, 0) AS Scans,
+         COALESCE(user_lookups, 0) + COALESCE(system_lookups, 0) AS Lookups,
+         COALESCE(user_updates, 0) + COALESCE(system_updates, 0) AS Updates,
+         COALESCE(user_seeks, 0) + COALESCE(system_seeks, 0)
+           + COALESCE(user_scans, 0) + COALESCE(system_scans, 0)
+           + COALESCE(user_lookups, 0) + COALESCE(system_lookups, 0)
+           + COALESCE(user_updates, 0) + COALESCE(system_updates, 0) AS Operations
+  FROM sys.dm_db_index_usage_stats
+  WHERE database_id = DB_ID()
+),
+PartitionUsageDetails
+AS
+( SELECT SCHEMA_NAME(t.schema_id) AS SchemaName,
+         t.name AS TableName,
+         i.name AS IndexName,
+         i.index_id AS IndexID,
+         i.type_desc AS IndexType,
+         CASE WHEN COALESCE(Operations, 0) <> 0
+              THEN CAST((COALESCE(Seeks, 0) + COALESCE(Lookups, 0)) * 100.0
+                        / COALESCE(Operations, 0) AS int)
+              ELSE 0
+         END AS SeekLookupPercentage,
+         CASE WHEN COALESCE(Operations, 0) <> 0
+              THEN CAST(COALESCE(Scans, 0) * 100.0 / COALESCE(Operations, 0) AS int)
+              ELSE 0
+         END AS ScanPercentage,
+         CASE WHEN COALeSCE(Operations, 0) <> 0
+              THEN CAST(COALESCE(Updates, 0) * 100.0 / COALESCE(Operations, 0) AS int)
+              ELSE 0
+         END AS UpdatePercentage,
+         p.partition_number AS PartitionNumber,
+         p.data_compression_desc AS CurrentCompression,
+         p.rows AS TotalRows
+   FROM sys.tables AS t
+   INNER JOIN sys.indexes AS i
+   ON t.object_id = i.object_id
+   INNER JOIN sys.partitions AS p
+   ON i.object_id = p.object_id
+   AND i.index_id = p.index_id
+   LEFT OUTER JOIN IndexUsageStats AS ius
+   ON i.object_id = ius.ObjectID
+   AND i.index_id = ius.IndexID
+   WHERE i.index_id > 0
+   AND t.is_ms_shipped = 0
+   AND t.type = N'U'
+),
+SuggestedPartitionCompressionTypes
+AS
+( SELECT pud.*,
+         CASE WHEN pud.ScanPercentage >= @ClusteredColumnstoreScansCutoff
+              AND pud.UpdatePercentage <= @ClusteredColumnstoreUpdatesCutoff
+              AND pud.SeekLookupPercentage <= @ClusteredColumnstoreSeeksLookupsCutoff
+              AND pud.TotalRows >= @ClusteredColumnstoreTotalRowsCutoff
+              AND @IsClusteredColumnstoreSupported <> 0
+              THEN N'CCI'
+              WHEN pud.ScanPercentage >= @PageCompressionScansCutoff
+              AND pud.UpdatePercentage <= @PageCompressionUpdatesCutoff
+              THEN N'PAGE'
+              ELSE N'ROW'
+         END AS SuggestedCompression
+  FROM PartitionUsageDetails AS pud
+)
+SELECT spct.SchemaName,
+       spct.TableName,
+       spct.IndexName,
+       spct.PartitionNumber,
+       spct.CurrentCompression,
+       spct.SuggestedCompression
+FROM SuggestedPartitionCompressionTypes AS spct
+WHERE spct.SuggestedCompression <> spct.CurrentCompression
+ORDER BY spct.SchemaName,
+         spct.TableName,
+         CASE WHEN spct.IndexID = 1 THEN 0 ELSE 1 END,
+         spct.IndexName;
+ 

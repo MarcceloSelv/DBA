@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# SQL Server Management Studio Solution File, Format Version 14.00
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extended Properties", "Extended Properties", "{21226B6F-5E90-4349-B86C-1B92F9A7D48A}"
+	ProjectSection(SolutionItems) = preProject
+		Trigger_Audit_Signa.sql = Trigger_Audit_Signa.sql
+	EndProjectSection
+EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Propriedades Estendidas", "Propriedades Estendidas\Propriedades Estendidas.ssmssqlproj", "{6C9B14CF-2525-402C-917E-F2D9642D25D0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integracao Log-In", "Integracao Log-In", "{A684567B-2B93-40A1-850F-2F94B801F6A4}"
+	ProjectSection(SolutionItems) = preProject
+		C:\Users\Marccelo.SIGNA\Documents\SQL Server Management Studio\Projects\LogIn\Integracao\CT-e\Inutilizacao.sql = C:\Users\Marccelo.SIGNA\Documents\SQL Server Management Studio\Projects\LogIn\Integracao\CT-e\Inutilizacao.sql
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Default|Default = Default|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{105C8A99-3134-4D80-AD0A-EB272E9F400C}.Default|Default.ActiveCfg = Default
+		{6C9B14CF-2525-402C-917E-F2D9642D25D0}.Default|Default.ActiveCfg = Default
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,151 @@
+--http://www.sqlservercentral.com/scripts/BACKUP+Related/123678/
+
+/* SCRIPT TO DELETE OLDER THAN N' DAYS BACKUP FROM A DEFAULT BACKUP DIRECTORY. IF DAYS = 0, PROVIDED, 
+IT WILL DELETE ALL BACKUP FILES FROM THE BACKUP LOCATION. */
+
+USE [database_name]
+GO
+IF OBJECT_ID('usp_DeleteBackup', 'P') IS NOT NULL
+DROP PROC usp_DeleteBackup
+GO
+
+--EXEC sp_configure 'xp_cmdshell', 1
+--GO
+--RECONFIGURE
+--GO
+
+
+CREATE PROC usp_DeleteBackup 
+(@days AS VARCHAR(4) -- Pass number of days
+)
+
+/*******************************************************************************************************
+**	DESCRIPTION:	DELETE BACKUP FILES FROM DEFAULT BACKUP LOCATION
+**	WRITEN BY:		SOURAV MUKHERJEE
+**	DATE:			13/03/2015
+
+***
+1.	No more hard code of the backup location. Instead it will extract the backup location from registry.
+2.  If in the registry the backupdirectory is not created, it will throw 
+3.  Pass the right parameters which signifies the days before which you want to delete the backup files.
+    For E.g. if @days = 3, it will delete all the backup files which are 3 days older than today's back.
+	         if @days = 0, the procedure will delete all backup files from the backup location.
+
+4. It will tell you the count of the backup files deleted from the location by running this script.
+5. If you want to retain any of the backup files from being removed, please change the extension of the backup files from 
+   ".BAK" to ".XXX" (XXX = Any other name)
+******************************************************************************************************
+
+** RUNNING THE PROCEDURE INSTRUCTIONS... **
+
+--EXEC usp_DeleteBackup @DAYS = 1 -- One day old backup will be deleted
+--EXEC usp_DeleteBackup @DAYS = 0 -- all backups will be deleted in the folder
+
+
+*/
+AS
+SET NOCOUNT ON
+BEGIN
+--BEGIN TRY
+
+DECLARE @backup_path nvarchar(2048);
+DECLARE @backupfile nvarchar(1000);
+DECLARE @BackupDirectory NVARCHAR(2048);
+--DECLARE @days AS VARCHAR(2) -- days for retention
+DECLARE @path AS VARCHAR(128) -- the path for deletion
+DECLARE @cmd AS VARCHAR(512) -- the actually command
+DECLARE @currentDateTime datetime;
+DECLARE @filename nvarchar(256);
+DECLARE @return_value INT;
+DECLARE @return_value1 INT;
+DECLARE @counter int;
+
+--DECLARE @min INT;
+--SET @currentDateTime = GetDate();
+
+EXEC @return_value = 
+						MASTER..XP_INSTANCE_REGREAD @rootkey = 'HKEY_LOCAL_MACHINE',  
+						@key = 'SOFTWARE\MICROSOFT\MSSQLSERVER\MSSQLSERVER',
+						@value_name = 'BackupDirectory', @BackupDirectory = @BackupDirectory OUTPUT ;  
+						SET @backup_path = (SELECT @BackupDirectory AS [SQL Server default backup Value]) 
+						--select @backup_path
+						--SELECT @backup_path
+--SELECT @return_value;
+
+IF @return_value <> 0 -- It's a failure
+BEGIN
+    PRINT 'Unable to retrieve a valid Backup directory from Registry'
+	
+    --RETURN(1) --Exits unconditionally from a query or procedure
+    RETURN @@ERROR
+END
+
+-- Query to check number of backup files in the location.
+
+IF OBJECT_ID('#DirOutput') IS NOT NULL
+DROP TABLE #DirOutput;
+
+DECLARE @cmd1 nvarchar(500),
+        @count1 INT;
+
+SET @cmd1 = 'dir ' +@backup_path+' /A:A'
+--PRINT @cmd1
+CREATE TABLE #DirOutput(
+     files varchar(500))
+
+INSERT INTO #DirOutput
+EXEC master.dbo.xp_cmdshell @cmd1
+
+SELECT @count1 = COUNT(*)
+FROM #DirOutput
+WHERE files LIKE '[0-9][0-9]/%'
+
+SELECT @count1 'Number of Backup Files before delete'
+DROP TABLE #DirOutput
+
+--SET @days = '3' -- change the days here, remember it is type VARCHAR
+--SET @days  = @days;
+SET @cmd = 'forfiles /P "' + @backup_path + '" /S /M *.bak /D -' + @days + ' /C "cmd /c del @PATH"' 
+
+--Print @cmd
+EXEC    @return_value1 = master.dbo.xp_cmdshell @cmd
+--PRINT @return_value1
+ IF @return_value1=0
+ BEGIN
+--SELECT @@ROWCOUNT AS DELETED;   
+--PRINT @backup_path
+SELECT 'BACKUP FILES ARE SUCCESSFULLY DROPPED FROM SERVER: ' + @@SERVERNAME;
+
+-- Query to check number of backup files in the location.
+--PRINT @backup_path
+IF OBJECT_ID('#DirOutput10') IS NOT NULL
+DROP TABLE #DirOutput10
+DECLARE @cmd10 nvarchar(500),
+        @count10 INT,
+		@files10 INT;
+
+SET @cmd10 = 'dir ' +@backup_path+' /A:A'
+--PRINT @cmd10
+--PRINT @cmd1
+CREATE TABLE #DirOutput10(
+     files varchar(500))
+
+INSERT INTO #DirOutput10
+EXEC master.dbo.xp_cmdshell @cmd10
+
+SELECT @count10 = COUNT(*)
+FROM #DirOutput10
+WHERE files LIKE '[0-9][0-9]/%'
+
+SET @files10= @count1 - @count10;
+SELECT @files10 'Number of Backup Deleted';
+DROP TABLE #DirOutput10
+
+END
+
+ELSE
+
+RETURN @@ERROR
+
+SET NOCOUNT OFF
+END

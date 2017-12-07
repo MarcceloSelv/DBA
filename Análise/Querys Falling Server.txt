@@ -1,0 +1,1 @@
+http://www.brentozar.com/archive/2013/08/what-queries-are-failing-in-my-sql-server/

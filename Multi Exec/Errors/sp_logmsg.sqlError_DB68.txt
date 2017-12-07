@@ -1,0 +1,6 @@
+Msg 208, Level 16, State 6, Server SIGNAINFODB, Procedure SP_LogMsg, Line 28
+Invalid object name 'SP_LogMsg'.
+Msg 15151, Level 16, State 1, Server SIGNAINFODB, Line 2
+Cannot find the object 'sp_logmsg', because it does not exist or you do not have permission.
+Msg 15151, Level 16, State 1, Server SIGNAINFODB, Line 1
+Cannot find the object 'sp_logmsg', because it does not exist or you do not have permission.

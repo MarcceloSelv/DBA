@@ -1,0 +1,2 @@
+http://www.sqlservercentral.com/articles/Performance+Tuning/96072/
+http://www.sqlservercentral.com/articles/SQLServerCentral/96158/

@@ -1,0 +1,3 @@
+https://sqlserverperformance.wordpress.com/2009/11/01/two-very-important-configuration-settings-for-sql-server-20052008/
+
+http://www.devmedia.com.br/obtendo-melhor-desempenho-no-servidor-sql-server/25047

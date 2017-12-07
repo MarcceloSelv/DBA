@@ -1,0 +1,3 @@
+https://www.simple-talk.com/sql/database-administration/brads-sure-dba-checklist/
+https://www.simple-talk.com/sql/database-administration/checklists-a-dbas-best-friend/
+https://www.brentozar.com/archive/2008/03/sql-server-2005-setup-checklist-part-1-before-the-install/

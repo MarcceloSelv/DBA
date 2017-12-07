@@ -1,0 +1,3 @@
+http://www.brentozar.com/archive/2014/05/tell-need-tempdb-files/
+http://www.brentozar.com/blitz/tempdb-data-files/
+https://sqlperformance.com/2017/05/sql-performance/sql-server-temporary-object-caching

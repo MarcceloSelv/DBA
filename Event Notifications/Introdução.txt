@@ -1,0 +1,2 @@
+https://technet.microsoft.com/en-us/library/ms189855(v=sql.105).aspx
+https://technet.microsoft.com/en-us/library/ms175854(v=sql.105).aspx

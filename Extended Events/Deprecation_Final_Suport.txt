@@ -1,0 +1,56 @@
+
+
+--https://www.mssqltips.com/sqlservertip/1857/identify-deprecated-sql-server-code-with-extended-events/
+
+----Find the columns that are  available to track for the 
+----deprecation_final_support event
+--SELECT * FROM sys.dm_xe_object_columns
+--WHERE [object_name] = 'deprecation_final_support';
+--GO
+
+----Find the additional columns that can be tracked
+--SELECT *
+--FROM sys.dm_xe_objects xo INNER JOIN sys.dm_xe_packages xp
+--ON xp.[guid] = xo.[package_guid]
+--WHERE xo.[object_type] = 'action'
+--ORDER BY xp.[name];
+--GO
+
+--Create the event 
+CREATE EVENT SESSION Monitor_Deprecated_Discontinued_Features ON SERVER
+--We are looking at deprecated features
+ADD EVENT sqlserver.deprecation_final_support
+( 
+--Add additional columns to track
+ACTION (sqlserver.database_id, sqlserver.sql_text, sqlserver.session_id, sqlserver.tsql_stack, sqlserver.client_hostname, sqlserver.client_app_name))
+
+--As a best practice use asynchronous file target, reduces overhead.
+ADD TARGET package0.asynchronous_file_target(
+SET filename='E:\Database\MSSQL10_50.MSSQLSERVER\MSSQL\Log\ExtendedEvents\Monitor_Deprecated_Discontinued_features.xel', 
+metadatafile='E:\Database\MSSQL10_50.MSSQLSERVER\MSSQL\Log\ExtendedEvents\Monitor_Deprecated_Discontinued_features.xem',
+max_file_size=(500),max_rollover_files=(2))
+WITH(STARTUP_STATE = ON)
+GO
+
+--Now start the session
+ALTER EVENT SESSION Monitor_Deprecated_Discontinued_features ON SERVER
+STATE = START;
+GO
+
+
+
+SELECT FinalData.R.value ('@name', 'nvarchar(50)') AS EventName,
+FinalData.R.value ('@timestamp', 'nvarchar(50)') AS TIMESTAMP,
+FinalData.R.value ('data(data/value)[1]', 'nvarchar(500)') AS Feature,
+FinalData.R.value ('data(data/value)[2]', 'nvarchar(500)') AS MESSAGE,
+FinalData.R.value ('(action/.)[1]', 'nvarchar(50)') AS DatabaseID,
+FinalData.R.value ('(action/.)[2]', 'nvarchar(50)') AS SQLText,
+FinalData.R.value ('(action/.)[3]', 'nvarchar(50)') AS SessionID
+FROM ( SELECT CONVERT(XML, event_data) AS xmldata
+FROM sys.fn_xe_file_target_read_file
+('E:\Database\MSSQL10_50.MSSQLSERVER\MSSQL\Log\ExtendedEvents\Monitor_Deprecated_Discontinued_features*.xel', 
+	'E:\Database\MSSQL10_50.MSSQLSERVER\MSSQL\Log\ExtendedEvents\Monitor_Deprecated_Discontinued_features*.xem', NULL, NULL)
+) AsyncFileData
+CROSS APPLY xmldata.nodes ('//event') AS FinalData (R)
+ORDER BY TIMESTAMP, Feature ASC
+GO

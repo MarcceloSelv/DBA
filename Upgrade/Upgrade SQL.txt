@@ -1,0 +1,51 @@
+http://www.sqlservercentral.com/articles/SQL+Server+Upgrade/130968/
+
+How to Upgrade SQL Server
+By Rudy Panigas, 2015/10/15
+
+As we all know, there comes a time to let go of an older version of SQL Server. In this article, I will provide an outline of recommended tasks for the upgrade to SQL Server 2014.
+
+To ensure a successful upgrade of your SQL Server to a new version, we need to review the following areas
+
+Pre Work – Before you start
+Data Loads – Getting your data loaded
+Post Work – Finalize the environment
+Pre Work – Before you Start
+These are a set of items that you should review.
+
+Hardware and Software Requirements for Installing SQL Server 2014 (https://msdn.microsoft.com/en-us/library/ms143506.aspx) - Review the minimum hardware and software requirements like editions
+The SQL Server 2014 Upgrade Advisor tool (https://msdn.microsoft.com/en-us/library/ee210467.aspx) - Analyses the configuration and recommends changes that need to be made
+Review Breaking Changes (https://msdn.microsoft.com/en-us/library/ms143179.aspx) - New changes to SQL Server may break applications, scripts and/or functions that are bases on earlier versions of SQL Server
+Review Behavioral Changes (https://msdn.microsoft.com/en-us/library/ms143359.aspx) - Behavior changes affect how features work and/or interact in the new versions
+Review Release Notes (https://msdn.microsoft.com/en-us/library/dn169381(v=sql.15).aspx) - These notes describes the known issues with current version and should be reviewed before installation
+Document all your findings - Record what you have learned. Update this document as you go along with the upgrade
+Database Instant File Initialization (https://msdn.microsoft.com/en-us/library/ms175935.aspx) - Turn on this feature in the OS to help speed up the creation of databases
+Start the installation of SQL Server (https://technet.microsoft.com/en-us/sqlserver/ff803383.aspx) - Ensure that you install the latest service packs and review cumulative patches
+Data Loads – Getting your Data Loaded
+When creating a new database(s) place data files, partitions, and logs on different disks. 
+Create multiple TempDB files on different disks (use SSD drives)
+Create an automated backup job - Be sure you back up all databases (include system and empty databases). Verify that backup locations are correct and use built in compression.
+Load user database data by restoring from ** latest full ** backups
+Compatibility level. Ensure that the restored databases are set to compatibility level of new installation. If not set may result in possible issues and you won't be able to take advantage of the new features:
+Compatibility level for 2014  is 120
+Compatibility level for 2012  is 110
+Compatibility level for 2008 and  2008R2  is 100  
+Compatibility level for 2005 is 90
+Recovery Model. Document the current recovery models and ensure that the restored database are set to the same
+Database Ownership. Change the ownership of databases once they are restored to “sa”
+Collation of all User databases. Review the collation setting for all databases are set correctly
+Post Work – Finalize the Environment
+Run DBCC CHECKDB WITH DATA_PURITY - This causes DBCC CHECKDB to check the database for column values that are not valid or out-of-range for the data type. Execute this check on “all” databases
+DBCC UPDATEUSAGE - This reports and corrects pages and row count inaccuracies in the catalog views. These inaccuracies may cause incorrect space usage reports returned by the sp_spaceused system stored procedure. Execute this check on “all” databases: DBCC UPDATEUSAGE(db_name);
+Update Statistics - Ensure you update statistics on all your databases
+            USE db_name;
+            GO
+            EXEC sp_MSforeachtable @command1='UPDATE STATISTICS ? WITH FULLSCAN';
+Refresh all Views - Use the sp_refreshview command
+Perform backups on “all” databases, yes again!
+Check your compatibility levels (https://msdn.microsoft.com/en-us/library/bb933794.aspx)
+Update your finding document
+Script out your logins from the source instance and apply to the new SQL Server.  Also check for orphan logins
+Script out and recreate linked servers, SQL jobs, SSIS packages, SSAS and SSRS and any other objects that have been missed.
+Automate Backup Databases - Perform full database backups often and create automated backup jobs
+Review Error Logs - Ensure your error logs are clean before using SQL Server.

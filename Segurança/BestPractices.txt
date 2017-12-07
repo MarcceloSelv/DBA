@@ -1,0 +1,5 @@
+http://www.greensql.com/content/10-must-do-sql-server-2012-security-tasks
+
+http://www.mssqltips.com/sqlservertip/1946/overview-of-the-sql-server-browser-service/
+
+http://www.databasejournal.com/features/mssql/article.php/3689846/Using-Non-Standard-Port-for-SQL-Server.htm
